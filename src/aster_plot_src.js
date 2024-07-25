@@ -268,6 +268,8 @@ looker.plugins.visualizations.add({
         console.log('Radius config set to: ' + config.radius)
       }
    let score;
+   let min;
+   let max;
       // calculate the weighted mean score (value in centre of pie)
       if (!config.keyword_search) {
         // console.log('Default weighted mean score')
@@ -281,8 +283,8 @@ looker.plugins.visualizations.add({
               return a + b.weight;
             }, 0)
           );
-        let min = Math.round(Math.min(...all_scores));
-        let max = Math.round(Math.max(...all_scores));
+        min = Math.round(Math.min(...all_scores));
+        max = Math.round(Math.max(...all_scores));
       } else {
         // custom keyword option
         for (let i = 0; i < data.length; i++) {
@@ -312,6 +314,7 @@ looker.plugins.visualizations.add({
         .attr('class', 'd3-tip')
         .offset([0, 0])
         .html(function(d) {
+          console.log({d})
            return d.data.label + ": <span style='color:orangered'>" + d.data.rendered + "</span>";
         });
   
@@ -488,14 +491,15 @@ looker.plugins.visualizations.add({
       }
   
       // legend
+      let legend;
       if (config.legend == "left") {
-        let legend = _svg.append("g")
+        legend = _svg.append("g")
           .attr("class","legend")
           .attr("transform","translate(-" + width/2.2 + " ,-" + height/2.5 + ")")
           .style("font-size","12px")
           .call(d3legend)
       } else if (config.legend == "right") {
-        let legend = _svg.append("g")
+        legend = _svg.append("g")
           .attr("class","legend")
           .attr("transform","translate(" + width/3.0 + " ,-" + height/2.5 + ")")
           .style("font-size","12px")
@@ -589,9 +593,8 @@ looker.plugins.visualizations.add({
   
           // adding rendered values to legend
           for (let i = 0; i < items.length; i++) {
-            console.log(items[i])
-            console.log(dataset_tiny[items[i].key])
-            items[i].value.rendered = dataset_tiny[items[i].key]
+            // console.log(dataset_tiny[i].key)
+            items[i].rendered = Object.keys(dataset_tiny)[i]
           }
   
           li.selectAll("text")
@@ -612,7 +615,8 @@ looker.plugins.visualizations.add({
               .style("fill",function(d) { return d.value.color});
   
           // Reposition and resize the box
-          let lbbox = li[0][0].getBBox()
+          console.log({li})
+          let lbbox = li.getBBox()
           lb.attr("x",(lbbox.x-legendPadding))
               .attr("y",(lbbox.y-legendPadding))
               .attr("height",(lbbox.height+2*legendPadding))

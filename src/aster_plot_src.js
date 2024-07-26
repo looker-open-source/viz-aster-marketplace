@@ -569,6 +569,7 @@ looker.plugins.visualizations.add({
       // MIT licence
       function d3legend(g) {
         g.each(function() {
+          let lbbox;
           let g= select(this),
               items = {},
               svg_prop = select(g.property("nearestViewportElement")),
@@ -577,7 +578,8 @@ looker.plugins.visualizations.add({
               li = g.selectAll(".legend-items").data([true])
   
           lb.enter().append("rect").classed("legend-box",true)
-          li.enter().append("g").classed("legend-items",true)
+          li.enter().append("g").classed("legend-items",true).each(function (d) {
+            lbbox = this.getBBox()})
   
           svg_prop.selectAll("[data-legend]").each(function() {
               let self = select(this)
@@ -615,8 +617,8 @@ looker.plugins.visualizations.add({
               .style("fill",function(d) { return d.value.color});
   
           // Reposition and resize the box
-          console.log({li})
-          let lbbox = li.getBBox()
+          // console.log({li})
+          //let lbbox = li.getBBox()
           lb.attr("x",(lbbox.x-legendPadding))
               .attr("y",(lbbox.y-legendPadding))
               .attr("height",(lbbox.height+2*legendPadding))

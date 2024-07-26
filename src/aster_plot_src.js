@@ -262,10 +262,10 @@ looker.plugins.visualizations.add({
       }
   
       if (!config.radius) {
-        console.log('Radius not set. Defaulting to max score: ' + getMaxOfArray(all_scores))
+        // console.log('Radius not set. Defaulting to max score: ' + getMaxOfArray(all_scores))
         config.radius = getMaxOfArray(all_scores)
       } else {
-        console.log('Radius config set to: ' + config.radius)
+        // console.log('Radius config set to: ' + config.radius)
       }
    let score;
    let min;
@@ -313,9 +313,8 @@ looker.plugins.visualizations.add({
       let _tip = d3Tip()
         .attr('class', 'd3-tip')
         .offset([0, 0])
-        .html(function(d) {
-          console.log({d})
-           return d.data.label + ": <span style='color:orangered'>" + d.data.rendered + "</span>";
+        .html(function(d, data) {
+           return data.data.label + ": <span style='color:orangered'>" + data.data.rendered + "</span>";
         });
   
       let _arc = arc()
@@ -383,8 +382,8 @@ looker.plugins.visualizations.add({
       let path = _svg.selectAll(".solidArc")
         .data(_pie(data))
         .enter().append("path")
-        .attr("data-legend",function(d) { return d.data.label }) // for legend
-        .attr("fill", function(d) { return d.data.color })
+        .attr("data-legend",function(d, data) { return data.label }) // for legend
+        .attr("fill", function(d, data) { return d.data.color })
         .attr("class", "solidArc")
         .attr("stroke", "gray")
         .attr("d", _arc)
@@ -595,7 +594,6 @@ looker.plugins.visualizations.add({
   
           // adding rendered values to legend
           for (let i = 0; i < items.length; i++) {
-            // console.log(dataset_tiny[i].key)
             items[i].rendered = Object.keys(dataset_tiny)[i]
           }
   

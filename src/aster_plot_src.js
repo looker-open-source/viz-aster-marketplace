@@ -1,3 +1,6 @@
+import d3Tip from 'd3-tip';
+import {pie, arc, select } from 'd3';
+
 looker.plugins.visualizations.add({
     //plot and series (colors)
     options: {
@@ -107,7 +110,7 @@ looker.plugins.visualizations.add({
     // Set up the initial state of the visualization
     create: function(element, config) {
   
-      var css = `
+      let css = `
         <style>
           body {
         font: 10px sans-serif;
@@ -182,7 +185,7 @@ looker.plugins.visualizations.add({
         </style> `;
   
       element.innerHTML = css;
-      var container = element.appendChild(document.createElement("div")); // Create a container element to let us center the text.
+      let container = element.appendChild(document.createElement("div")); // Create a container element to let us center the text.
       this.container = container
       container.className = "d3-aster-plot";
       this._textElement = container.appendChild(document.createElement("div")); // Create an element to contain the text.
@@ -202,26 +205,26 @@ looker.plugins.visualizations.add({
         return;
       }
   
-      var dimension = queryResponse.fields.dimension_like[0].name;
-      var measure_1_score = queryResponse.fields.measure_like[0].name, measure_2_weight = queryResponse.fields.measure_like[1].name;
+      let dimension = queryResponse.fields.dimension_like[0].name;
+      let measure_1_score = queryResponse.fields.measure_like[0].name, measure_2_weight = queryResponse.fields.measure_like[1].name;
   
       // SVG margins to make labels visible. Otherwise they overflow visible area
       // src: https://www.visualcinnamon.com/2015/09/placing-text-on-arcs.html
-      var margin = {
+      let margin = {
         top: 30,
         right: 30,
         bottom: 30,
         left: 30
       };
   
-      var width = element.clientWidth - margin.left - margin.right,
-        height = element.clientHeight - margin.top - margin.bottom,
-        radius = Math.min(width, height) / 2,
-        innerRadius = 0.3 * radius;
+      let width = element.clientWidth - margin.left - margin.right;
+      let height = element.clientHeight - margin.top - margin.bottom;
+      let radius = Math.min(width, height) / 2;
+      let innerRadius = 0.3 * radius;
   
       // set custom chart size
       if (!isNaN(parseFloat(config.chart_size))) {
-        var ratio = parseFloat(config.chart_size) / 100.0;
+        let ratio = parseFloat(config.chart_size) / 100.0;
         if (ratio > 2) {
           radius = radius*2;
         }
@@ -237,13 +240,13 @@ looker.plugins.visualizations.add({
         config.color_range = ["#9E0041", "#C32F4B", "#E1514B", "#F47245", "#FB9F59", "#FEC574", "#FAE38C", "#EAF195", "#C7E89E", "#9CD6A4", "#6CC4A4", "#4D9DB4", "#4776B4", "#5E4EA1"];
       }
   
-      var all_scores = [],
+      let all_scores = [],
         all_weight = [],
         color_length = config.color_range.length,
         dataset_tiny = {};
-      for (var i = 0; i < data.length; i++) {
+      for (let i = 0; i < data.length; i++) {
         if (i >= color_length) {
-          var j = Math.floor(i/color_length)
+          let j = Math.floor(i/color_length)
           data[i].color = config.color_range[i-(j*color_length)]; // loop through color array if there are too many series
         } else {
           data[i].color = config.color_range[i];
@@ -259,16 +262,18 @@ looker.plugins.visualizations.add({
       }
   
       if (!config.radius) {
-        console.log('Radius not set. Defaulting to max score: ' + getMaxOfArray(all_scores))
+        // console.log('Radius not set. Defaulting to max score: ' + getMaxOfArray(all_scores))
         config.radius = getMaxOfArray(all_scores)
       } else {
-        console.log('Radius config set to: ' + config.radius)
+        // console.log('Radius config set to: ' + config.radius)
       }
-  
+   let score;
+   let min;
+   let max;
       // calculate the weighted mean score (value in centre of pie)
       if (!config.keyword_search) {
         // console.log('Default weighted mean score')
-        var score =
+        score =
           Math.round(
             data.reduce(function(a, b) {
               //console.log('a:' + a + ', b.score: ' + b.score + ', b.weight: ' + b.weight);
@@ -278,14 +283,14 @@ looker.plugins.visualizations.add({
               return a + b.weight;
             }, 0)
           );
-        var min = Math.round(Math.min(...all_scores));
-        var max = Math.round(Math.max(...all_scores));
+        min = Math.round(Math.min(...all_scores));
+        max = Math.round(Math.max(...all_scores));
       } else {
         // custom keyword option
-        for (var i = 0; i < data.length; i++) {
+        for (let i = 0; i < data.length; i++) {
           if (data[i].label.toLowerCase().includes(config.keyword_search.toLowerCase())) {
             //console.log(data[i].label + ' is used for centre score');
-            var score = data[i].weight,
+            score = data[i].weight,
               min = Math.min( ...all_weight),
               max = Math.max( ...all_weight),
               scale_min = 0.2, // setting scale is 0.2 -> 0.6 of radius
@@ -299,46 +304,46 @@ looker.plugins.visualizations.add({
         }
       }
   
-      var pie = d3.layout.pie()
+      let _pie = pie()
         .sort(null)
         .value(function(d) {
           return d.width;
         });
   
-      var tip = d3.tip()
+      let _tip = d3Tip()
         .attr('class', 'd3-tip')
         .offset([0, 0])
-        .html(function(d) {
-           return d.data.label + ": <span style='color:orangered'>" + d.data.rendered + "</span>";
+        .html(function(d, data) {
+           return data.data.label + ": <span style='color:orangered'>" + data.data.rendered + "</span>";
         });
   
-      var arc = d3.svg.arc()
+      let _arc = arc()
         .innerRadius(innerRadius)
         .outerRadius(function(d) {
           return (radius - innerRadius) * (d.data.score / (1.0*config.radius)) + innerRadius;
         });
   
-      var outlineArc = d3.svg.arc()
+      let outlineArc = arc()
         .innerRadius(innerRadius)
         .outerRadius(radius);
   
-      var svg = d3.select(".d3-aster-plot").append("svg")
+      let _svg = select(".d3-aster-plot").append("svg")
         .attr("width", width + margin.left + margin.right)
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr("transform", "translate(" + (width / 2 + margin.left) + "," + (height / 2 + margin.top) + ")");
   
-      svg.call(tip);
+      _svg.call(_tip);
   
       // inner circle color
-      var inner_circle = svg.append("circle")
+      let inner_circle = _svg.append("circle")
         .attr("cx", 0)
         .attr("cy", 0)
         .attr("r", innerRadius)
         .attr("fill",config.inner_circle_color);
   
       // affix score to centre of pie
-      var centerVal = svg.append("svg:text")
+      let centerVal = _svg.append("svg:text")
         .attr("class", "aster-score")
         .attr("dy", ".35em")
         .attr("text-anchor", "middle") // text-align: right
@@ -356,7 +361,7 @@ looker.plugins.visualizations.add({
           }
         });
   
-      svg.append("text")
+      _svg.append("text")
         .attr("class", "score-sublabel")
         .attr("dy", "2em")
         .attr("text-anchor", "middle") // text-align: right
@@ -374,21 +379,21 @@ looker.plugins.visualizations.add({
           }
         });
   
-      var path = svg.selectAll(".solidArc")
-        .data(pie(data))
+      let path = _svg.selectAll(".solidArc")
+        .data(_pie(data))
         .enter().append("path")
-        .attr("data-legend",function(d) { return d.data.label }) // for legend
-        .attr("fill", function(d) { return d.data.color })
+        .attr("data-legend",function(d, data) { return data.label }) // for legend
+        .attr("fill", function(d, data) { return d.data.color })
         .attr("class", "solidArc")
         .attr("stroke", "gray")
-        .attr("d", arc)
-        .on('mouseover', tip.show)
-        .on('mouseout', tip.hide);
+        .attr("d", _arc)
+        .on('mouseover', _tip.show)
+        .on('mouseout', _tip.hide);
   
       // Create the Ouline Arc and also the invisible arcs for labels
       // src: https://www.visualcinnamon.com/2015/09/placing-text-on-arcs.html
-      var outerPath = svg.selectAll(".outlineArc")
-        .data(pie(data))
+      let outerPath = _svg.selectAll(".outlineArc")
+        .data(_pie(data))
         .enter().append("path")
         .attr("fill", "none")
         .attr("stroke", "gray")
@@ -397,10 +402,10 @@ looker.plugins.visualizations.add({
         // Create the new invisible arcs and flip the direction for the bottom half labels
         .each(function(d, i) {
             // Search pattern for everything between the start and the first capital L
-            var firstArcSection = /(^.+?)L/;
+            let firstArcSection = /(^.+?)L/;
   
             // Grab everything up to the first Line statement
-            var newArc = firstArcSection.exec( d3.select(this).attr("d") )[1];
+            let newArc = firstArcSection.exec( select(this).attr("d") )[1];
             // Replace all the commas so that IE can handle it
             newArc = newArc.replace(/,/g , " ");
   
@@ -410,23 +415,23 @@ looker.plugins.visualizations.add({
                 // Example: M 0 300 A 200 200 0 0 1 400 300
   
                 // Everything between the capital M and first capital A
-                var startLoc = /M(.*?)A/;
+                let startLoc = /M(.*?)A/;
                 // Everything between the capital A and 0 0 1
-                var middleLoc = /A(.*?)0 0 1/;
+                let middleLoc = /A(.*?)0 0 1/;
                 // Everything between the 0 0 1 and the end of the string (denoted by $)
-                var endLoc = /0 0 1 (.*?)$/;
+                let endLoc = /0 0 1 (.*?)$/;
                 // Flip the direction of the arc by switching the start and end point
                 // and using a 0 (instead of 1) sweep flag
-                var newStart = endLoc.exec( newArc )[1];
-                var newEnd = startLoc.exec( newArc )[1];
-                var middleSec = middleLoc.exec( newArc )[1];
+                let newStart = endLoc.exec( newArc )[1];
+                let newEnd = startLoc.exec( newArc )[1];
+                let middleSec = middleLoc.exec( newArc )[1];
   
                 // Build up the new arc notation, set the sweep-flag to 0
                 newArc = "M" + newStart + "A" + middleSec + "0 0 0 " + newEnd;
             }
   
             // Create a new invisible arc that the label can flow along
-            svg.append("path")
+            _svg.append("path")
                 .attr("class", "hiddenDonutArcs")
                 .attr("id", "sliceOutlineArc_"+i)
                 .attr("d", newArc)
@@ -438,8 +443,8 @@ looker.plugins.visualizations.add({
         // src: https://www.visualcinnamon.com/2015/09/placing-text-on-arcs.html
   
         // Line 1
-        svg.selectAll(".label-line-1")
-          .data(pie(data))
+        _svg.selectAll(".label-line-1")
+          .data(_pie(data))
           .enter()
           .append("text")
           .attr("class", "label-line-1")
@@ -461,8 +466,8 @@ looker.plugins.visualizations.add({
           });
   
         // Line 2
-        svg.selectAll(".label-line-2")
-          .data(pie(data))
+        _svg.selectAll(".label-line-2")
+          .data(_pie(data))
           .enter()
           .append("text")
           .attr("class", "label-line-2")
@@ -485,14 +490,15 @@ looker.plugins.visualizations.add({
       }
   
       // legend
+      let legend;
       if (config.legend == "left") {
-        var legend = svg.append("g")
+        legend = _svg.append("g")
           .attr("class","legend")
           .attr("transform","translate(-" + width/2.2 + " ,-" + height/2.5 + ")")
           .style("font-size","12px")
           .call(d3legend)
       } else if (config.legend == "right") {
-        var legend = svg.append("g")
+        legend = _svg.append("g")
           .attr("class","legend")
           .attr("transform","translate(" + width/3.0 + " ,-" + height/2.5 + ")")
           .style("font-size","12px")
@@ -527,7 +533,7 @@ looker.plugins.visualizations.add({
   
   
       function handleErrors(vis, res, options) {
-        var check = function (group, noun, count, min, max) {
+        let check = function (group, noun, count, min, max) {
             if (!vis.addError || !vis.clearErrors) {
                 return false;
             }
@@ -550,7 +556,7 @@ looker.plugins.visualizations.add({
             vis.clearErrors(group);
             return true;
         };
-        var _a = res.fields, pivots = _a.pivots, dimensions = _a.dimension_like, measures = _a.measure_like;
+        let _a = res.fields, pivots = _a.pivots, dimensions = _a.dimension_like, measures = _a.measure_like;
         return (check('pivot-req', 'Pivot', pivots.length, options.min_pivots, options.max_pivots)
             && check('dim-req', 'Dimension', dimensions.length, options.min_dimensions, options.max_dimensions)
             && check('mes-req', 'Measure', measures.length, options.min_measures, options.max_measures));
@@ -562,18 +568,20 @@ looker.plugins.visualizations.add({
       // MIT licence
       function d3legend(g) {
         g.each(function() {
-          var g= d3.select(this),
+          let lbbox;
+          let g= select(this),
               items = {},
-              svg = d3.select(g.property("nearestViewportElement")),
+              svg_prop = select(g.property("nearestViewportElement")),
               legendPadding = g.attr("data-style-padding") || 5,
               lb = g.selectAll(".legend-box").data([true]),
               li = g.selectAll(".legend-items").data([true])
   
           lb.enter().append("rect").classed("legend-box",true)
-          li.enter().append("g").classed("legend-items",true)
+          li.enter().append("g").classed("legend-items",true).each(function (d) {
+            lbbox = this.getBBox()})
   
-          svg.selectAll("[data-legend]").each(function() {
-              var self = d3.select(this)
+          svg_prop.selectAll("[data-legend]").each(function() {
+              let self = select(this)
               items[self.attr("data-legend")] = {
                 pos : self.attr("data-legend-pos") || this.getBBox().y,
                 color : self.attr("data-legend-color") != undefined ? self.attr("data-legend-color") : self.style("fill") != 'none' ? self.style("fill") : self.style("stroke"),
@@ -582,13 +590,11 @@ looker.plugins.visualizations.add({
             })
   
           // sort alphanumerically
-          items = d3.entries(items).sort(function(a,b) { return (a.key < b.key) ? -1 : (a.key > b.key) ? 1 : 0})
+          items = Object.entries(items).sort(function(a,b) { return (a.key < b.key) ? -1 : (a.key > b.key) ? 1 : 0})
   
           // adding rendered values to legend
-          for (var i = 0; i < items.length; i++) {
-            console.log(items[i])
-            console.log(dataset_tiny[items[i].key])
-            items[i].value.rendered = dataset_tiny[items[i].key]
+          for (let i = 0; i < items.length; i++) {
+            items[i].rendered = Object.keys(dataset_tiny)[i]
           }
   
           li.selectAll("text")
@@ -609,7 +615,8 @@ looker.plugins.visualizations.add({
               .style("fill",function(d) { return d.value.color});
   
           // Reposition and resize the box
-          var lbbox = li[0][0].getBBox()
+          // console.log({li})
+          //let lbbox = li.getBBox()
           lb.attr("x",(lbbox.x-legendPadding))
               .attr("y",(lbbox.y-legendPadding))
               .attr("height",(lbbox.height+2*legendPadding))

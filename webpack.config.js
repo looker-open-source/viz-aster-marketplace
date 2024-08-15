@@ -1,6 +1,6 @@
 var path = require("path");
 
-const UglifyJSPlugin = require("uglifyjs-webpack-plugin");
+const TerserPlugin = require('terser-webpack-plugin');
 
 var webpackConfig = {
   mode: "production",
@@ -13,7 +13,7 @@ var webpackConfig = {
     library: "[name]",
     libraryTarget: "umd",
   },
-  plugins: [new UglifyJSPlugin()],
+  plugins: [new TerserPlugin()],
 };
 
 module.exports = webpackConfig;

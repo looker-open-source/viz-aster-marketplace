@@ -415,7 +415,8 @@ looker.plugins.visualizations.add({
         .attr("d", function(d, i) {
             let d_path = outlineArc(d);
             let firstArcSection = /(^.+?)L/;
-            let newArc = firstArcSection.exec(d_path)[1];
+            let firstArcMatch = firstArcSection.exec(d_path);
+            let newArc = firstArcMatch ? firstArcMatch[1] : d_path;
             newArc = newArc.replace(/,/g , " ");
   
             if (shouldFlipLabel(d.startAngle, d.endAngle)) {
@@ -423,11 +424,16 @@ looker.plugins.visualizations.add({
                 let middleLoc = /A(.*?)0 0 1/;
                 let endLoc = /0 0 1 (.*?)$/;
                 
-                let newStart = endLoc.exec(newArc)[1];
-                let newEnd = startLoc.exec(newArc)[1];
-                let middleSec = middleLoc.exec(newArc)[1];
-  
-                newArc = "M" + newStart + "A" + middleSec + "0 0 0 " + newEnd;
+                let startMatch = startLoc.exec(newArc);
+                let middleMatch = middleLoc.exec(newArc);
+                let endMatch = endLoc.exec(newArc);
+                
+                if (startMatch && middleMatch && endMatch) {
+                    let newStart = endMatch[1];
+                    let newEnd = startMatch[1];
+                    let middleSec = middleMatch[1];
+                    newArc = "M" + newStart + "A" + middleSec + "0 0 0 " + newEnd;
+                }
             }
             return newArc;
         })
@@ -573,7 +579,7 @@ looker.plugins.visualizations.add({
           let liContainer = li.merge(liEnter);
 
           let legendData = data.map(d => ({
-            label: d.label,
+            label: d.label == null ? "" : String(d.label),
             color: d.color,
             rendered: d.rendered
           })).sort((a, b) => a.label.localeCompare(b.label));

@@ -8,6 +8,7 @@ var webpackConfig = {
     aster_plot: "./src/aster_plot_src.js",
   },
   output: {
+    hashFunction: 'sha256',
     filename: "bundle.js",
     path: path.join(path.resolve(__dirname), "/dist"),
     library: "[name]",

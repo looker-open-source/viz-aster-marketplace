@@ -199,16 +199,18 @@ looker.plugins.visualizations.add({
   
     // Render in response to the data or settings changing
     updateAsync: function(data, element, config, queryResponse, details, done) {
-      this.container.innerHTML = '' // clear container of previous vis
-      this.clearErrors(); // clear any errors from previous updates
+      try {
+        this.container.innerHTML = '' // clear container of previous vis
+        this.clearErrors(); // clear any errors from previous updates
   
-      // ensure data fit - requires no pivots, exactly 1 dimension_like field, and exactly 2 measure_like fields
-      if (!handleErrors(this, queryResponse, {
-        min_pivots: 0, max_pivots: 0,
-        min_dimensions: 1, max_dimensions: 1,
-        min_measures: 2, max_measures: 2})) {
-        return;
-      }
+        // ensure data fit - requires no pivots, exactly 1 dimension_like field, and exactly 2 measure_like fields
+        if (!handleErrors(this, queryResponse, {
+          min_pivots: 0, max_pivots: 0,
+          min_dimensions: 1, max_dimensions: 1,
+          min_measures: 2, max_measures: 2})) {
+          done();
+          return;
+        }
   
       let dimension = queryResponse.fields.dimension_like[0].name;
       let measure_1_score = queryResponse.fields.measure_like[0].name, measure_2_weight = queryResponse.fields.measure_like[1].name;
@@ -403,45 +405,39 @@ looker.plugins.visualizations.add({
         .attr("fill", "none")
         .attr("stroke", "gray")
         .attr("class", "outlineArc")
-        .attr("d", outlineArc)
-        // Create the new invisible arcs and flip the direction for the bottom half labels
-        .each(function(d, i) {
-            // Search pattern for everything between the start and the first capital L
+        .attr("d", outlineArc);
+
+      let hiddenDonutArcs = _svg.selectAll(".hiddenDonutArcs")
+        .data(_pie(data))
+        .enter().append("path")
+        .attr("class", "hiddenDonutArcs")
+        .attr("id", (d, i) => "sliceOutlineArc_" + i)
+        .attr("d", function(d, i) {
+            let d_path = outlineArc(d);
             let firstArcSection = /(^.+?)L/;
-  
-            // Grab everything up to the first Line statement
-            let newArc = firstArcSection.exec( select(this).attr("d") )[1];
-            // Replace all the commas so that IE can handle it
+            let firstArcMatch = firstArcSection.exec(d_path);
+            let newArc = firstArcMatch ? firstArcMatch[1] : d_path;
             newArc = newArc.replace(/,/g , " ");
   
             if (shouldFlipLabel(d.startAngle, d.endAngle)) {
-                // Arc path
-                // Template: M start-x, start-y A radius-x, radius-y, x-axis-rotation, large-arc-flag, sweep-flag, end-x, end-y
-                // Example: M 0 300 A 200 200 0 0 1 400 300
-  
-                // Everything between the capital M and first capital A
                 let startLoc = /M(.*?)A/;
-                // Everything between the capital A and 0 0 1
                 let middleLoc = /A(.*?)0 0 1/;
-                // Everything between the 0 0 1 and the end of the string (denoted by $)
                 let endLoc = /0 0 1 (.*?)$/;
-                // Flip the direction of the arc by switching the start and end point
-                // and using a 0 (instead of 1) sweep flag
-                let newStart = endLoc.exec( newArc )[1];
-                let newEnd = startLoc.exec( newArc )[1];
-                let middleSec = middleLoc.exec( newArc )[1];
-  
-                // Build up the new arc notation, set the sweep-flag to 0
-                newArc = "M" + newStart + "A" + middleSec + "0 0 0 " + newEnd;
+                
+                let startMatch = startLoc.exec(newArc);
+                let middleMatch = middleLoc.exec(newArc);
+                let endMatch = endLoc.exec(newArc);
+                
+                if (startMatch && middleMatch && endMatch) {
+                    let newStart = endMatch[1];
+                    let newEnd = startMatch[1];
+                    let middleSec = middleMatch[1];
+                    newArc = "M" + newStart + "A" + middleSec + "0 0 0 " + newEnd;
+                }
             }
-  
-            // Create a new invisible arc that the label can flow along
-            _svg.append("path")
-                .attr("class", "hiddenDonutArcs")
-                .attr("id", "sliceOutlineArc_"+i)
-                .attr("d", newArc)
-                .style("fill", "none");
-        });
+            return newArc;
+        })
+        .style("fill", "none");
   
       if (config.label_value == "on") {
         // Create labels
@@ -569,68 +565,70 @@ looker.plugins.visualizations.add({
   
   
       // Legend
-      // (C) 2012 ziggy.jonsson.nyc@gmail.com
-      // MIT licence
       function d3legend(g) {
         g.each(function() {
-          let lbbox;
-          let g= select(this),
-              items = {},
-              svg_prop = select(g.property("nearestViewportElement")),
+          let g = select(this),
               legendPadding = g.attr("data-style-padding") || 5,
               lb = g.selectAll(".legend-box").data([true]),
-              li = g.selectAll(".legend-items").data([true])
-  
-          lb.enter().append("rect").classed("legend-box",true)
-          li.enter().append("g").classed("legend-items",true).each(function (d) {
-            lbbox = this.getBBox()})
-  
-          svg_prop.selectAll("[data-legend]").each(function() {
-              let self = select(this)
-              items[self.attr("data-legend")] = {
-                pos : self.attr("data-legend-pos") || this.getBBox().y,
-                color : self.attr("data-legend-color") != undefined ? self.attr("data-legend-color") : self.style("fill") != 'none' ? self.style("fill") : self.style("stroke"),
-                rendered : '100' // testing adding values to legend
-              }
-            })
-  
-          // sort alphanumerically
-          items = Object.entries(items).sort(function(a,b) { return (a.key < b.key) ? -1 : (a.key > b.key) ? 1 : 0})
-  
-          // adding rendered values to legend
-          for (let i = 0; i < items.length; i++) {
-            items[i].rendered = Object.keys(dataset_tiny)[i]
-          }
-  
-          li.selectAll("text")
-              .data(items,function(d) { return d.key})
-              .call(function(d) { d.enter().append("text")})
-              .call(function(d) { d.exit().remove()})
-              .attr("y",function(d,i) { return i+"em"})
-              .attr("x","1em")
-              .text(function(d) { return d.key + ' ' + d.value.rendered});
-  
-          li.selectAll("circle")
-              .data(items,function(d) { return d.key})
-              .call(function(d) { d.enter().append("circle")})
-              .call(function(d) { d.exit().remove()})
-              .attr("cy",function(d,i) { return i-0.25+"em"})
-              .attr("cx",0)
-              .attr("r","0.4em")
-              .style("fill",function(d) { return d.value.color});
-  
-          // Reposition and resize the box
-          // console.log({li})
-          //let lbbox = li.getBBox()
-          lb.attr("x",(lbbox.x-legendPadding))
-              .attr("y",(lbbox.y-legendPadding))
-              .attr("height",(lbbox.height+2*legendPadding))
-              .attr("width",(lbbox.width+2*legendPadding))
+              li = g.selectAll(".legend-items").data([true]);
+   
+          let lbEnter = lb.enter().append("rect").classed("legend-box", true);
+          let lbContainer = lb.merge(lbEnter);
+
+          let liEnter = li.enter().append("g").classed("legend-items", true);
+          let liContainer = li.merge(liEnter);
+
+          let legendData = data.map(d => ({
+            label: d.label == null ? "" : String(d.label),
+            color: d.color,
+            rendered: d.rendered
+          })).sort((a, b) => a.label.localeCompare(b.label));
+
+          let text = liContainer.selectAll("text")
+              .data(legendData, d => d.label);
+          
+          text.enter().append("text")
+              .attr("x", "1em")
+            .merge(text)
+              .attr("y", (d, i) => i + "em")
+              .text(d => d.label + ' ' + d.rendered);
+          
+          text.exit().remove();
+   
+          let circles = liContainer.selectAll("circle")
+              .data(legendData, d => d.label);
+          
+          circles.enter().append("circle")
+              .attr("cx", 0)
+              .attr("r", "0.4em")
+            .merge(circles)
+              .attr("cy", (d, i) => (i - 0.25) + "em")
+              .style("fill", d => d.color);
+          
+          circles.exit().remove();
+   
+          let lbbox = liContainer.node().getBBox();
+          
+          lbContainer.attr("x", (lbbox.x - legendPadding))
+              .attr("y", (lbbox.y - legendPadding))
+              .attr("height", (lbbox.height + 2 * legendPadding))
+              .attr("width", (lbbox.width + 2 * legendPadding));
         })
         return g
       }
   
   
-      done()
+        done();
+      } catch (error) {
+        console.error("Error during rendering:", error);
+        if (this.addError) {
+          this.addError({
+            group: "render",
+            title: "Rendering Error",
+            message: error.message || "An unexpected error occurred during rendering."
+          });
+        }
+        done();
+      }
     }
   });

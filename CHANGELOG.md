@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/looker-open-source/viz-aster-marketplace/compare/v1.0.1...v1.0.2) (2026-06-26)
+
+
+### Bug Fixes
+
+* fix done callback execution, packages upgrade and refactoring code ([#31](https://github.com/looker-open-source/viz-aster-marketplace/issues/31)) ([157419e](https://github.com/looker-open-source/viz-aster-marketplace/commit/157419e0d3cebb0187791afd8e1bb98dbf2a3cdf))
+
 ## [1.0.1](https://github.com/looker-open-source/viz-aster-marketplace/compare/v1.0.0...v1.0.1) (2026-05-22)
 
 

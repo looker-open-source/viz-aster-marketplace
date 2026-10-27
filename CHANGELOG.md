@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/looker-open-source/viz-aster-marketplace/compare/v1.0.2...v1.1.0) (2026-10-27)
+
+
+### Miscellaneous Chores
+
+* align release version with marketplace listing ([#39](https://github.com/looker-open-source/viz-aster-marketplace/issues/39)) ([9e201b0](https://github.com/looker-open-source/viz-aster-marketplace/commit/9e201b074774be802e9a0c150baebc964752b5b8))
+
 ## [1.0.2](https://github.com/looker-open-source/viz-aster-marketplace/compare/v1.0.1...v1.0.2) (2026-06-26)
 
 
